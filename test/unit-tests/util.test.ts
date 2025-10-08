@@ -28,4 +28,28 @@ suite('Utils test', () => {
             expect(util.msToString(test[0])).to.eq(test[1]);
         }
     });
+    test('cmakeify should not escape semicolons in strings', () => {
+        const result = util.cmakeify('libc;compiler-rt');
+        expect(result.type).to.eq('STRING');
+        expect(result.value).to.eq('libc;compiler-rt');
+    });
+    test('cmakeify should convert arrays to semicolon-separated strings', () => {
+        const result = util.cmakeify(['libc', 'compiler-rt']);
+        expect(result.type).to.eq('STRING');
+        expect(result.value).to.eq('libc;compiler-rt');
+    });
+    test('cmakeify should convert booleans correctly', () => {
+        const resultTrue = util.cmakeify(true);
+        expect(resultTrue.type).to.eq('BOOL');
+        expect(resultTrue.value).to.eq('TRUE');
+        
+        const resultFalse = util.cmakeify(false);
+        expect(resultFalse.type).to.eq('BOOL');
+        expect(resultFalse.value).to.eq('FALSE');
+    });
+    test('cmakeify should convert numbers to strings', () => {
+        const result = util.cmakeify(42);
+        expect(result.type).to.eq('STRING');
+        expect(result.value).to.eq('42');
+    });
 });
