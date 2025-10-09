@@ -187,4 +187,32 @@ suite('Variable Substitution', () => {
         await Promise.all(objectPairs(testKeys).map(async testKey => checkTestKey(testKey, cache)));
     }).timeout(100000);
 
+    test('Check semicolon handling in configureSettings', async () => {
+        // Test that semicolons in string values are correctly passed to CMake
+        // and interpreted as list separators (not escaped)
+        testEnv.config.updatePartial({
+            configureSettings: {
+                // String with semicolons should be treated as a CMake list
+                SEMICOLON_STRING_TEST: 'item1;item2;item3',
+                // Array should be joined with semicolons
+                SEMICOLON_ARRAY_TEST: ['arrayItem1', 'arrayItem2', 'arrayItem3']
+            }
+        });
+
+        // Configure
+        expect((await cmakeProject.configureInternal(ConfigureTrigger.runTests)).exitCode).to.be.eq(0, '[semicolon] configure failed');
+        expect(testEnv.projectFolder.buildDirectory.isCMakeCachePresent).to.eql(true, '[semicolon] cache not present');
+        const cache = await CMakeCache.fromPath(await cmakeProject.cachePath);
+
+        // Check that string with semicolons is correctly stored in cache
+        let cacheEntry = cache.get('SEMICOLON_STRING_TEST') as CacheEntry;
+        expect(cacheEntry.type).to.eq(CacheEntryType.String, '[semicolon string] unexpected cache entry type');
+        expect(cacheEntry.value).to.eq('item1;item2;item3', '[semicolon string] semicolons should be preserved');
+        
+        // Check that array is correctly joined with semicolons
+        cacheEntry = cache.get('SEMICOLON_ARRAY_TEST') as CacheEntry;
+        expect(cacheEntry.type).to.eq(CacheEntryType.String, '[semicolon array] unexpected cache entry type');
+        expect(cacheEntry.value).to.eq('arrayItem1;arrayItem2;arrayItem3', '[semicolon array] array items should be joined with semicolons');
+    }).timeout(100000);
+
 });
